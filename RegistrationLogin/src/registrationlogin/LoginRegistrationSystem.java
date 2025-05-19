@@ -2,12 +2,17 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
  */
+
 package registrationlogin;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.*;
+import java.util.*;
+import java.io.*;
+import org.json.simple.*;
+import org.json.simple.parser.*;
 
 public class LoginRegistrationSystem {
     private JFrame frame;
@@ -17,6 +22,7 @@ public class LoginRegistrationSystem {
     private JTextField surnameField;
     private JTextField phoneNumberField;
     private JPasswordField confirmPasswordField;
+    private final ArrayList<Message> messages = new ArrayList<>();
 
     Connection connection;
 
@@ -54,14 +60,12 @@ public class LoginRegistrationSystem {
             JOptionPane.showMessageDialog(null, 
                 "Database driver not found. Please add the MySQL connector JAR to your project.",
                 "Driver Error", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
             System.exit(1);
         } catch (SQLException e) {
             System.err.println("Database connection error: " + e.getMessage());
             JOptionPane.showMessageDialog(null, 
                 "Failed to connect to database: " + e.getMessage(),
                 "Connection Error", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -80,12 +84,11 @@ public class LoginRegistrationSystem {
             System.out.println("Users table created or already exists.");
         } catch (SQLException e) {
             System.err.println("Error creating users table: " + e.getMessage());
-            e.printStackTrace();
             JOptionPane.showMessageDialog(frame, "Error creating database table: " + e.getMessage());
         }
     }
 
-    // Validate login using database
+    // Validating login using database
     public boolean validateLogin(String username, String password) {
         String query = "SELECT * FROM users WHERE username=? AND password=?";
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
@@ -115,7 +118,6 @@ public class LoginRegistrationSystem {
             return true;
         } catch (SQLException e) {
             System.err.println("Registration error: " + e.getMessage());
-            e.printStackTrace();
             if (e.getMessage().contains("Duplicate")) {
                 JOptionPane.showMessageDialog(frame, "Error: Username already exists.");
             } else {
@@ -162,22 +164,21 @@ public class LoginRegistrationSystem {
         passwordField = new JPasswordField(15);
 
         JButton loginButton = new JButton("Login");
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String username = usernameField.getText();
-                String password = new String(passwordField.getPassword());
-                
-                if (username.isEmpty() || password.isEmpty()) {
-                    JOptionPane.showMessageDialog(frame, "Username and password cannot be empty");
-                    return;
-                }
-                
-                if (validateLogin(username, password)) {
-                    JOptionPane.showMessageDialog(frame, "Login successful!");
-                } else {
-                    JOptionPane.showMessageDialog(frame, "Invalid username or password");
-                }
+        loginButton.addActionListener((ActionEvent e) -> {
+            String username = usernameField.getText();
+            String password = new String(passwordField.getPassword());
+            
+            if (username.isEmpty() || password.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "Username and password cannot be empty");
+                return;
+            }
+            
+            if (validateLogin(username, password)) {
+                JOptionPane.showMessageDialog(frame, "Login successful!");
+                frame.dispose(); // Close the login window
+                showQuickChatApp(); // Open the messaging app
+            } else {
+                JOptionPane.showMessageDialog(frame, "Invalid username or password");
             }
         });
 
@@ -215,34 +216,31 @@ public class LoginRegistrationSystem {
         confirmPasswordField = new JPasswordField(15);
 
         JButton registerButton = new JButton("Register");
-        registerButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String name = nameField.getText();
-                String surname = surnameField.getText();
-                String phoneNumber = phoneNumberField.getText();
-                String username = usernameRegistrationField.getText();
-                String password = new String(passwordRegistrationField.getPassword());
-                String confirmPassword = new String(confirmPasswordField.getPassword());
-
-                // Basic validation
-                if (name.isEmpty() || surname.isEmpty() || username.isEmpty()) {
-                    JOptionPane.showMessageDialog(frame, "All fields are required.");
-                    return;
-                }
-
-                if (validateRegistration(password, confirmPassword, phoneNumber)) {
-                    boolean success = registerUser(name, surname, phoneNumber, username, password);
-                    if (success) {
-                        JOptionPane.showMessageDialog(frame, "Registration successful!");
-                        // Clear fields after successful registration
-                        nameField.setText("");
-                        surnameField.setText("");
-                        phoneNumberField.setText("");
-                        usernameRegistrationField.setText("");
-                        passwordRegistrationField.setText("");
-                        confirmPasswordField.setText("");
-                    }
+        registerButton.addActionListener((ActionEvent e) -> {
+            String name = nameField.getText();
+            String surname = surnameField.getText();
+            String phoneNumber = phoneNumberField.getText();
+            String username = usernameRegistrationField.getText();
+            String password = new String(passwordRegistrationField.getPassword());
+            String confirmPassword = new String(confirmPasswordField.getPassword());
+            
+            // Basic validation
+            if (name.isEmpty() || surname.isEmpty() || username.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "All fields are required.");
+                return;
+            }
+            
+            if (validateRegistration(password, confirmPassword, phoneNumber)) {
+                boolean success = registerUser(name, surname, phoneNumber, username, password);
+                if (success) {
+                    JOptionPane.showMessageDialog(frame, "Registration successful!");
+                    // Clear fields after successful registration
+                    nameField.setText("");
+                    surnameField.setText("");
+                    phoneNumberField.setText("");
+                    usernameRegistrationField.setText("");
+                    passwordRegistrationField.setText("");
+                    confirmPasswordField.setText("");
                 }
             }
         });
@@ -290,8 +288,286 @@ public class LoginRegistrationSystem {
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
+    
+    // Part 2: QuickChat Application after successful login
+    private void showQuickChatApp() {
+        JOptionPane.showMessageDialog(null, "Welcome to QuickChat.", "QuickChat", JOptionPane.INFORMATION_MESSAGE);
+        
+        // Get number of messages to send
+        String input = JOptionPane.showInputDialog(null, "How many messages would you like to enter?", "Message Count", JOptionPane.QUESTION_MESSAGE);
+        int numMessages;
+        try {
+            numMessages = Integer.parseInt(input);
+            if (numMessages <= 0) {
+                JOptionPane.showMessageDialog(null, "Please enter a positive number. Setting to 1 by default.", "Invalid Input", JOptionPane.WARNING_MESSAGE);
+                numMessages = 1;
+            }
+        } catch (NumberFormatException | NullPointerException e) {
+            JOptionPane.showMessageDialog(null, "Invalid input. Setting to 1 by default.", "Input Error", JOptionPane.WARNING_MESSAGE);
+            numMessages = 1;
+        }
+        
+        boolean running = true;
+        while (running) {
+            String[] options = {"1) Send Messages", "2) Show recently sent messages", "3) Quit"};
+            int choice = JOptionPane.showOptionDialog(
+                null,
+                "Choose an option:",
+                "QuickChat Menu",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.INFORMATION_MESSAGE,
+                null,
+                options,
+                options[0]
+            );
+            
+            switch (choice) {
+                case 0 -> {
+                    // Send Messages
+                    if (messages.size() >= numMessages) {
+                        JOptionPane.showMessageDialog(null, "You have already sent the maximum number of messages (" + numMessages + ").",
+                                "Limit Reached", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        composeMessage();
+                    }
+                }
+                    
+                case 1 -> // Show recently sent messages
+                    JOptionPane.showMessageDialog(null, "Coming Soon.", "Feature in Development", JOptionPane.INFORMATION_MESSAGE);
+                    
+                case 2, -1 -> // Quit
+                {
+                    // Window close button
+                    if (!messages.isEmpty()) {
+                        JOptionPane.showMessageDialog(null, "Total messages sent: " + messages.size(),
+                                "Session Summary", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                    running = false;
+                    System.exit(0);
+                }
+            }
+            // Quit
+                    }
+    }
+    
+    private void composeMessage() {
+        Message message = new Message(messages.size());
+        
+        // Get recipient
+        String recipient = JOptionPane.showInputDialog(null, "Enter recipient cell number (with international code):", 
+                                                     "Recipient", JOptionPane.QUESTION_MESSAGE);
+        if (recipient == null) {
+            return; // User canceled
+        }
+        
+        if (message.checkRecipientCell(recipient) == 0) {
+            JOptionPane.showMessageDialog(null, "Invalid recipient number. Must be 10 characters or less with international code.", 
+                                         "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        message.setRecipient(recipient);
+        
+        // Get message text
+        String messageText = JOptionPane.showInputDialog(null, "Enter your message (max 250 characters):", 
+                                                      "Message", JOptionPane.QUESTION_MESSAGE);
+        if (messageText == null) {
+            return; // User canceled
+        }
+        
+        if (messageText.length() > 250) {
+            JOptionPane.showMessageDialog(null, "Please enter a message of less than 250 characters.", 
+                                         "Message Too Long", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        message.setMessageText(messageText);
+        
+        // Create message hash
+        message.createMessageHash();
+        
+        // Choose what to do with the message
+        String action = message.sentMessage();
+        
+        if (action.equals("send")) {
+            // Add message to our list
+            messages.add(message);
+            
+            // Display message details
+            JOptionPane.showMessageDialog(null, 
+                """
+                Message Details:
+                Message ID: """ + message.getMessageId() + "\n" +
+                "Message Hash: " + message.getMessageHash() + "\n" +
+                "Recipient: " + message.getRecipient() + "\n" +
+                "Message: " + message.getMessageText(),
+                "Message Sent", JOptionPane.INFORMATION_MESSAGE);
+                
+            JOptionPane.showMessageDialog(null, "Message sent", "Success", JOptionPane.INFORMATION_MESSAGE);
+        } else if (action.equals("store")) {
+            message.storeMessage();
+            JOptionPane.showMessageDialog(null, "Message stored for later", "Stored", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(null, "Message discarded", "Discarded", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(LoginRegistrationSystem::new);
     }
 }
+
+// Part 2: 
+class Message {
+    private final String messageId;
+    private final int messageNum;
+    private String recipient;
+    private String messageText;
+    private String messageHash;
+    
+    public Message(int messageCount) {
+        this.messageNum = messageCount + 1; // Start from 1, not 0
+        this.messageId = generateMessageId();
+    }
+    
+    private String generateMessageId() {
+        // Generate a random 10-digit number
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 10; i++) {
+            sb.append(random.nextInt(10));
+        }
+        return sb.toString();
+    }
+    
+    // message ID is not more than 10 characters
+    public boolean checkMessageID() {
+        return messageId.length() <= 10;
+    }
+    
+    // recipient number is valid (12 or fewer chars, has international code)
+    public int checkRecipientCell(String cellNumber) {
+        if (cellNumber.length() <= 12 && cellNumber.startsWith("+")) {
+            return 1; // Valid
+        }
+        return 0; // Invalid
+    }
+    
+    // Creating message hash from ID, message number, and first
+    public String createMessageHash() {
+        String[] words = messageText.trim().split("\\s+");
+        String firstWord = words.length > 0 ? words[0] : "";
+        String lastWord = words.length > 1 ? words[words.length - 1] : firstWord;
+        
+        // First two digits of message ID
+        String idStart = messageId.substring(0, Math.min(2, messageId.length()));
+        
+        messageHash = idStart + ":" + messageNum + ":" + firstWord.toUpperCase() + lastWord.toUpperCase();
+        return messageHash;
+    }
+    
+    // Method to handle sending, storing, or discarding a message
+    public String sentMessage() {
+        String[] options = {"Send Message", "Disregard Message", "Store Message to send later"};
+        int choice = JOptionPane.showOptionDialog(
+            null,
+            "What would you like to do with this message?",
+            "Message Options",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
+        
+        switch(choice) {
+            case 0:
+                return "send";
+            case 1:
+                return "discard";
+            case 2:
+                return "store";
+            default:
+                return "discard";
+        }
+    }
+    
+    // Method to store message as JSON
+    @SuppressWarnings("unchecked")
+    public void storeMessage() {
+        JSONObject messageJson = new JSONObject();
+        messageJson.put("messageId", messageId);
+        messageJson.put("messageNum", messageNum);
+        messageJson.put("recipient", recipient);
+        messageJson.put("messageText", messageText);
+        messageJson.put("messageHash", messageHash);
+        
+        
+        JSONArray messagesArray = new JSONArray();
+        File jsonFile = new File("stored_messages.json");
+        
+        if (jsonFile.exists()) {
+            try (FileReader reader = new FileReader("stored_messages.json")) {
+                JSONParser parser = new JSONParser();
+                Object obj = parser.parse(reader);
+                messagesArray = (JSONArray) obj;
+            } catch (IOException | ParseException e) {
+                JOptionPane.showMessageDialog(null, "Error reading stored messages: " + e.getMessage(),
+                                            "File Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        
+       
+        messagesArray.add(messageJson);
+        
+        try (FileWriter file = new FileWriter("stored_messages.json")) {
+            file.write(messagesArray.toJSONString());
+            file.flush();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Error saving message: " + e.getMessage(),
+                                        "File Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    // Return messages list (for displaying all messages)
+    public String printMessages() {
+        return "Message ID: " + messageId + 
+               "\nMessage Hash: " + messageHash + 
+               "\nRecipient: " + recipient + 
+               "\nMessage: " + messageText;
+    }
+    
+    // Return total messages count
+    public int returnTotalMessages() {
+        return messageNum;
+    }
+    
+    // Getters and setters
+    public String getMessageId() {
+        return messageId;
+    }
+    
+    public int getMessageNum() {
+        return messageNum;
+    }
+    
+    public String getRecipient() {
+        return recipient;
+    }
+    
+    public void setRecipient(String recipient) {
+        this.recipient = recipient;
+    }
+    
+    public String getMessageText() {
+        return messageText;
+    }
+    
+    public void setMessageText(String messageText) {
+        this.messageText = messageText;
+    }
+    
+    public String getMessageHash() {
+        return messageHash;
+    }
+}
+
+
