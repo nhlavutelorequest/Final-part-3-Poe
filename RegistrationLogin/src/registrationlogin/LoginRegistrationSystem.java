@@ -5,6 +5,7 @@
 
 package registrationlogin;
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -149,7 +150,7 @@ public class LoginRegistrationSystem {
     private void createAndShowGUI() {
         frame = new JFrame("Login/Registration System");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(400, 500);  // Made taller to fit all fields better
+        frame.setSize(400, 500); 
         frame.setLayout(new CardLayout());
 
         // Login panel
@@ -284,7 +285,7 @@ public class LoginRegistrationSystem {
         frame.add(loginPanel, "login");
         frame.add(registrationPanel, "registration");
         
-        // Center the frame on the screen
+        
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
@@ -333,7 +334,7 @@ public class LoginRegistrationSystem {
                 }
                     
                 case 1 -> // Show recently sent messages
-                    JOptionPane.showMessageDialog(null, "Coming Soon.", "Feature in Development", JOptionPane.INFORMATION_MESSAGE);
+                    sendMessageChart();
                     
                 case 2, -1 -> // Quit
                 {
@@ -348,6 +349,78 @@ public class LoginRegistrationSystem {
             }
             // Quit
                     }
+    }
+    
+    // Method to display sent messages in a chart/table format
+    private void sendMessageChart() {
+        if (messages.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "No messages have been sent yet.", 
+                                        "Message Chart", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        // Create a new JFrame for the message chart
+        JFrame chartFrame = new JFrame("Sent Messages Chart");
+        chartFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        chartFrame.setSize(800, 400);
+        chartFrame.setLocationRelativeTo(null);
+        
+        // Create table columns
+        String[] columnNames = {"Message #", "Message ID", "Recipient", "Message Text", "Message Hash"};
+        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Make table read-only
+            }
+        };
+        
+        // Add message data to table
+        for (Message message : messages) {
+            Object[] rowData = {
+                message.getMessageNum(),
+                message.getMessageId(),
+                message.getRecipient(),
+                message.getMessageText(),
+                message.getMessageHash()
+            };
+            tableModel.addRow(rowData);
+        }
+        
+        // Create JTable with the model
+        JTable messageTable = new JTable(tableModel);
+        messageTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        messageTable.setRowHeight(25);
+        
+        // Set column widths
+        messageTable.getColumnModel().getColumn(0).setPreferredWidth(80);  // Message #
+        messageTable.getColumnModel().getColumn(1).setPreferredWidth(100); // Message ID
+        messageTable.getColumnModel().getColumn(2).setPreferredWidth(120); // Recipient
+        messageTable.getColumnModel().getColumn(3).setPreferredWidth(200); // Message Text
+        messageTable.getColumnModel().getColumn(4).setPreferredWidth(150); // Message Hash
+        
+        // Add table to scroll pane
+        JScrollPane scrollPane = new JScrollPane(messageTable);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        
+        // Create summary panel
+        JPanel summaryPanel = new JPanel(new FlowLayout());
+        JLabel summaryLabel = new JLabel("Total Messages Sent: " + messages.size());
+        summaryLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        summaryPanel.add(summaryLabel);
+        
+        // Add close button
+        JButton closeButton = new JButton("Close");
+        closeButton.addActionListener(e -> chartFrame.dispose());
+        summaryPanel.add(closeButton);
+        
+        // Add components to frame
+        chartFrame.setLayout(new BorderLayout());
+        chartFrame.add(scrollPane, BorderLayout.CENTER);
+        chartFrame.add(summaryPanel, BorderLayout.SOUTH);
+        
+        // Show the chart window
+        chartFrame.setVisible(true);
     }
     
     private void composeMessage() {
@@ -384,7 +457,7 @@ public class LoginRegistrationSystem {
         // Create message hash
         message.createMessageHash();
         
-        // Choose what to do with the message
+        // Choosing what to do with the message
         String action = message.sentMessage();
         
         if (action.equals("send")) {
@@ -415,7 +488,7 @@ public class LoginRegistrationSystem {
     }
 }
 
-// Part 2: 
+
 class Message {
     private final String messageId;
     private final int messageNum;
@@ -443,7 +516,7 @@ class Message {
         return messageId.length() <= 10;
     }
     
-    // recipient number is valid (12 or fewer chars, has international code)
+    // recipient number is valid (10 or fewer chars, has international code)
     public int checkRecipientCell(String cellNumber) {
         if (cellNumber.length() <= 12 && cellNumber.startsWith("+")) {
             return 1; // Valid
@@ -569,5 +642,3 @@ class Message {
         return messageHash;
     }
 }
-
-
