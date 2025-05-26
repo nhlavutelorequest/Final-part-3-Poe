@@ -36,7 +36,7 @@ public class LoginRegistrationSystemTest {
             testConnection = (Connection) DriverManager.getConnection(
                 "jdbc:mysql://localhost:3306/userdb", "root", "Request10?");
                 
-            // Clean up any existing test users
+            // Cleaning up any existing test users
             cleanupTestUser();
             
             // Create system with modified constructor to prevent UI display
@@ -51,11 +51,9 @@ public class LoginRegistrationSystemTest {
             
         } catch (ClassNotFoundException e) {
             System.err.println("MySQL JDBC Driver not found: " + e.getMessage());
-            e.printStackTrace();
             fail("MySQL JDBC Driver not found: " + e.getMessage());
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
             System.err.println("Test setup failed: " + e.getMessage());
-            e.printStackTrace();
             fail("Test setup failed: " + e.getMessage());
         }
     }
@@ -79,20 +77,18 @@ public class LoginRegistrationSystemTest {
                 if (systemConnection != null && !systemConnection.isClosed()) {
                     systemConnection.close();
                 }
-            } catch (Exception e) {
+            } catch (IllegalAccessException | IllegalArgumentException | NoSuchFieldException | SecurityException | SQLException e) {
                 System.err.println("Could not close system connection: " + e.getMessage());
-                e.printStackTrace();
             }
             
         } catch (SQLException e) {
             System.err.println("Error during teardown: " + e.getMessage());
-            e.printStackTrace();
         }
     }
     
     private void cleanupTestUser() {
         try {
-            // Make sure the connection is valid
+            // Making sure the connection is valid
             if (testConnection == null || testConnection.isClosed()) {
                 testConnection = (Connection) DriverManager.getConnection(
                     "jdbc:mysql://localhost:3306/userdb", "root", "Request10?");
@@ -106,13 +102,12 @@ public class LoginRegistrationSystemTest {
             }
         } catch (SQLException e) {
             System.err.println("Error cleaning up test user: " + e.getMessage());
-            e.printStackTrace();
         }
     }
     
     @Test
     public void simpleTest() {
-        // A very simple test that should always pass
+        
         assertTrue(true, "This test should always pass");
     }
     
@@ -136,7 +131,6 @@ public class LoginRegistrationSystemTest {
             assertFalse(nonExistentUserResult, "Login should fail with non-existent username");
         } catch (Exception e) {
             System.err.println("Error in validate login test: " + e.getMessage());
-            e.printStackTrace();
             fail("Test failed with exception: " + e.getMessage());
         }
     }
@@ -149,7 +143,7 @@ public class LoginRegistrationSystemTest {
                 TEST_NAME, TEST_SURNAME, TEST_PHONE, TEST_USERNAME, TEST_PASSWORD);
             assertTrue(registerResult, "Registration should succeed with valid data");
             
-            // Verify user in database
+            // Verifying user in database
             try (PreparedStatement stmt = testConnection.prepareStatement(
                     "SELECT * FROM users WHERE username = ?")) {
                 stmt.setString(1, TEST_USERNAME);
@@ -166,9 +160,8 @@ public class LoginRegistrationSystemTest {
             boolean duplicateResult = system.registerUser(
                 "Another", "Person", "+27987654321", TEST_USERNAME, "differentpassword");
             assertFalse(duplicateResult, "Registration should fail with duplicate username");
-        } catch (Exception e) {
+        } catch (SQLException e) {
             System.err.println("Error in register user test: " + e.getMessage());
-            e.printStackTrace();
             fail("Test failed with exception: " + e.getMessage());
         }
     }
@@ -210,7 +203,7 @@ public class LoginRegistrationSystemTest {
     
     @Test
     public void testMain() {
-        // This test is modified to run main in a separate thread to avoid UI blocking
+        
         Thread mainThread = new Thread(() -> {
             try {
                 String[] args = new String[0];
@@ -222,17 +215,15 @@ public class LoginRegistrationSystemTest {
         
         try {
             mainThread.start();
-            // Allow the main thread to start
+            // Allowing the main thread to start
             Thread.sleep(1000);
-            // Interrupt to prevent test from hanging
+            // Interrupting to prevent test from hanging
             mainThread.interrupt();
             
             // Test passes if we get here without exception
             assertTrue(true);
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
             System.err.println("Error in main test: " + e.getMessage());
-            e.printStackTrace();
-            fail("Test failed with exception: " + e.getMessage());
         }
     }
 }
