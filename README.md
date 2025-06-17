@@ -1,5 +1,5 @@
 # My QuickChat Application with Arrays and Additional Features
-# NB:PART 3 IS ON DEFALT PACKAGE,
+
 # I have two class for loginregistrationSystem in one parkage just for in case not to struggle to look for part 3 i stated on comment that says"// Part 3: This is Extended QuickChat Application with Arrays and Additional Features"
 
 
